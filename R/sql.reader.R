@@ -88,9 +88,9 @@ sql.reader <- function(data.file, filename, variable.name)
     database.info <- modifyList(connection.info, database.info) 
   }
 
-  if (! (database.info[['type']] %in% c('mysql', 'sqlite', 'odbc', 'postgres', 'oracle')))
+  if (! (database.info[['type']] %in% c('mysql', 'sqlite', 'odbc', 'postgres', 'oracle', 'jdbc')))
   {
-    warning('Only databases reachable through RMySQL, RSQLite, RODBC ROracle or RPostgreSQL are currently supported.')
+    warning('Only databases reachable through RMySQL, RSQLite, RODBC ROracle, RPostgreSQL or JDBC are currently supported.')
     assign(variable.name,
            NULL,
            envir = .GlobalEnv)
@@ -174,6 +174,18 @@ sql.reader <- function(data.file, filename, variable.name)
                             dbname = database.info[['dbname']])
   }
 
+  if (database.info[['type']] == 'jdbc')
+  {
+    library('RJDBC')
+
+    jdbc.driver <- JDBC(database.info[['class']], database.info[['jar']])
+
+    connection <- dbConnect(jdbc.driver,
+                            database.info[['string']],
+                            database.info[['user']],
+                            database.info[['password']])
+  }
+
   # Added support for queries.
   # User should specify either a table name or a query to execute, but not both.
   table <- database.info[['table']]
@@ -238,7 +250,8 @@ sql.reader <- function(data.file, filename, variable.name)
     data.parcel <- try(dbGetQuery(connection, query))
     err <- dbGetException(connection)
     
-    if (class(data.parcel) == 'data.frame' && err$errorNum == 0)
+    # Added is.null check since RJDBC doesn't implement dbGetException
+    if (class(data.parcel) == 'data.frame' && (is.null(err$errorNum) || err$errorNum == 0))
     {
       assign(variable.name,
              data.parcel,
