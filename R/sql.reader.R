@@ -88,7 +88,7 @@ sql.reader <- function(data.file, filename, variable.name)
     database.info <- modifyList(connection.info, database.info) 
   }
 
-  if (! (database.info[['type']] %in% c('mysql', 'sqlite', 'odbc', 'postgres', 'oracle', 'jdbc')))
+  if (! (database.info[['type']] %in% c('mysql', 'sqlite', 'odbc', 'postgres', 'oracle', 'jdbc', 'function')))
   {
     warning('Only databases reachable through RMySQL, RSQLite, RODBC ROracle, RPostgreSQL or JDBC are currently supported.')
     assign(variable.name,
@@ -186,11 +186,25 @@ sql.reader <- function(data.file, filename, variable.name)
                             database.info[['password']])
   }
 
+  if (database.info[['type']] == 'function')
+  {
+    connection <- eval(parse(text=database.info[['function']]))
+  }
+
   # Added support for queries.
   # User should specify either a table name or a query to execute, but not both.
   table <- database.info[['table']]
+  prequeries <- database.info[['prequeries']]
   query <- database.info[['query']]
   
+  if (! is.null(prequeries)) {
+    for(s in strsplit(prequeries,';')[[1]]) {
+      if(nchar(s) > 1) {
+        dbSendUpdate(connection, s)
+      }
+    }
+    data.parcel <- data.frame()
+  }
   # If both a table and a query are specified, favor the query.
   if (! is.null(table) && ! is.null(query))
   {
@@ -201,9 +215,9 @@ sql.reader <- function(data.file, filename, variable.name)
       table <- NULL
   }
 
-  if (is.null(table) && is.null(query))
+  if (is.null(table) && is.null(query) && is.null(prequeries))
   {
-    warning("Either 'table' or 'query' must be specified in a .sql file")
+    warning("Either 'table', 'query' or 'prequeries' must be specified in a .sql file")
     return()
   }
   
@@ -284,11 +298,13 @@ sql.reader <- function(data.file, filename, variable.name)
   }
 
   # Disconnect from database resources. Warn if failure.
-  disconnect.success <- dbDisconnect(connection)
+  if (is.null(database.info[['keep.alive']])) {
+    disconnect.success <- dbDisconnect(connection)
 
-  if (! disconnect.success)
-  {
-    warning(paste('Unable to disconnect from database:',
-                  database.info[['dbname']]))
+    if (! disconnect.success)
+    {
+      warning(paste('Unable to disconnect from database:',
+                    database.info[['dbname']]))
+    }
   }
 }
