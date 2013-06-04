@@ -17,5 +17,8 @@
 reload.project <- function()
 {
   rm(list = ls(.GlobalEnv), pos = .GlobalEnv)
+  if (file.exists('~/.Rprofile')) {
+    source('~/.Rprofile')
+  }
   load.project()
 }
