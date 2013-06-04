@@ -197,8 +197,8 @@ sql.reader <- function(data.file, filename, variable.name)
   updates <- database.info[['updates']]
   query <- database.info[['query']]
   
-  if (! is.null(prequeries)) {
-    for(s in strsplit(prequeries,';')[[1]]) {
+  if (! is.null(updates)) {
+    for(s in strsplit(updates,';')[[1]]) {
       if(nchar(s) > 1) {
         dbSendUpdate(connection, s)
       }
@@ -215,9 +215,9 @@ sql.reader <- function(data.file, filename, variable.name)
       table <- NULL
   }
 
-  if (is.null(table) && is.null(query) && is.null(prequeries))
+  if (is.null(table) && is.null(query) && is.null(updates))
   {
-    warning("Either 'table', 'query' or 'prequeries' must be specified in a .sql file")
+    warning("Either 'table', 'query' or 'updates' must be specified in a .sql file")
     return()
   }
   
