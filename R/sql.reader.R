@@ -194,7 +194,7 @@ sql.reader <- function(data.file, filename, variable.name)
   # Added support for queries.
   # User should specify either a table name or a query to execute, but not both.
   table <- database.info[['table']]
-  prequeries <- database.info[['prequeries']]
+  updates <- database.info[['updates']]
   query <- database.info[['query']]
   
   if (! is.null(prequeries)) {
